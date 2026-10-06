@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orbit Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+  /* Deliberate single-theme night sky — every color painted explicitly. */
+  :root {
+    --bg: #0B1026;
+    --surface: #161D3A;
+    --ink: #ECEFF7;
+    --muted: #9BA4C6;
+    --accent: #F2C66B;
+    --accent-soft: rgba(242, 198, 107, 0.13);
+    --on-accent: #0B1026;
+    --blue: #7FA8F0;
+    --blue-soft: rgba(127, 168, 240, 0.13);
+    --good: #5CC98A;
+    --good-soft: rgba(92, 201, 138, 0.14);
+    --bad: #F08080;
+    --bad-soft: rgba(240, 128, 128, 0.12);
+    --line: #2A3356;
+    --moonlit: #F2E9C9;
+    --moondark: #232B4D;
+    --shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    background:
+      radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.55) 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 78% 9%, rgba(255,255,255,0.4) 50%, transparent 51%),
+      radial-gradient(1px 1px at 55% 32%, rgba(255,255,255,0.35) 50%, transparent 51%),
+      radial-gradient(1px 1px at 31% 64%, rgba(255,255,255,0.3) 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 88% 54%, rgba(255,255,255,0.35) 50%, transparent 51%),
+      radial-gradient(1px 1px at 8% 86%, rgba(255,255,255,0.3) 50%, transparent 51%),
+      radial-gradient(1px 1px at 67% 81%, rgba(255,255,255,0.4) 50%, transparent 51%),
+      var(--bg);
+    background-attachment: fixed;
+    font-family: "Atkinson Hyperlegible", "Avenir Next", system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 620px; margin: 0 auto; padding: 18px 14px 48px; }
+
+  h1, h2, h3 { font-family: "Unbounded", system-ui, sans-serif; font-weight: 800; text-wrap: balance; margin: 0; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+  .topbar { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 4px 2px 14px; }
+  .brand { font-family: "Unbounded", system-ui, sans-serif; font-weight: 800; font-size: 19px; color: var(--ink); }
+  .brand span { color: var(--accent); }
+  .navlink {
+    background: none; border: none; padding: 4px 2px; cursor: pointer;
+    color: var(--blue); font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px;
+  }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 20px 18px; margin-bottom: 14px; }
+
+  .hero h1 { font-size: 24px; line-height: 1.25; }
+  .hero p { color: var(--muted); margin: 10px 0 0; }
+  .topic-list { margin: 14px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+  .topic-list li { font-size: 13.5px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 4px 12px; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; text-align: center;
+    font: inherit; font-weight: 700; cursor: pointer;
+    border-radius: 12px; padding: 13px 20px; min-height: 52px;
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    touch-action: manipulation;
+  }
+  .btn:focus-visible, .navlink:focus-visible, input:focus-visible, details summary:focus-visible, .opt:focus-visible {
+    outline: 3px solid var(--blue); outline-offset: 2px;
+  }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-size: 17px; }
+  .btn-wide { width: 100%; }
+  .btn-danger { color: var(--bad); }
+  .btn-row { display: flex; gap: 10px; margin-top: 16px; }
+  .btn-row .btn { flex: 1; }
+
+  .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 4px; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px; }
+  .stat .num { font-family: "IBM Plex Mono", monospace; font-size: 23px; font-weight: 600; color: var(--ink); }
+  .stat .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+
+  /* ---------- Quiz ---------- */
+  .progress { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 8px 0 10px; }
+  .progress .label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 5px; }
+  .bar { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
+  .bar > div { height: 100%; border-radius: 999px; background: var(--accent); transition: width 0.25s ease; }
+  @media (prefers-reduced-motion: reduce) { .bar > div { transition: none; } }
+
+  .qtopic { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--blue); margin-bottom: 8px; }
+  .qtext { font-size: 19px; font-weight: 700; margin: 0 0 14px; }
+  .moonfig { display: flex; justify-content: center; margin: 4px 0 14px; }
+
+  .opts { display: flex; flex-direction: column; gap: 9px; }
+  .opt {
+    font: inherit; font-size: 16px; font-weight: 700; text-align: left; cursor: pointer;
+    border: 2px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink);
+    padding: 13px 14px; min-height: 52px; touch-action: manipulation;
+  }
+  .opt.right { border-color: var(--good); background: var(--good-soft); color: var(--good); }
+  .opt.wrong { border-color: var(--bad); background: var(--bad-soft); color: var(--bad); }
+  .opt:disabled { cursor: default; opacity: 1; }
+  .opt.dim:disabled { opacity: 0.5; }
+
+  .answer-line { display: flex; gap: 8px; }
+  input.answer {
+    flex: 1; width: 100%; min-height: 52px; padding: 8px 14px;
+    font: inherit; font-size: 18px; font-weight: 700;
+    color: var(--ink); background: #10152E;
+    border: 2px solid var(--line); border-radius: 12px;
+  }
+  input.answer::placeholder { color: var(--muted); opacity: 0.7; font-weight: 400; }
+  .answer-line .btn { flex: 0 0 auto; }
+
+  .feedback { min-height: 46px; border-radius: 10px; padding: 10px 12px; font-size: 15px; margin-top: 10px; }
+  .feedback.neutral { color: var(--muted); background: var(--surface); border: 1px dashed var(--line); }
+  .feedback.right { color: var(--good); background: var(--good-soft); font-weight: 700; }
+  .feedback.wrong { color: var(--bad); background: var(--bad-soft); font-weight: 700; }
+  .feedback .why { display: block; font-weight: 400; color: var(--ink); margin-top: 4px; }
+
+  /* ---------- Results / history / study ---------- */
+  .score-hero { text-align: center; padding: 26px 18px; }
+  .score-big { font-family: "IBM Plex Mono", monospace; font-size: 54px; font-weight: 600; line-height: 1; }
+  .score-msg { font-family: "Unbounded", system-ui, sans-serif; font-size: 18px; font-weight: 800; margin-top: 12px; }
+  .score-sub { color: var(--muted); margin-top: 6px; }
+
+  .misslist { margin: 0; padding: 0; list-style: none; }
+  .misslist li { padding: 10px 4px; border-bottom: 1px solid var(--line); font-size: 15px; }
+  .misslist li:last-child { border-bottom: none; }
+  .misslist .q { font-weight: 700; display: block; }
+  .misslist .a { color: var(--bad); }
+  .misslist .cor { color: var(--good); font-weight: 700; }
+  .allgood { color: var(--good); font-weight: 700; padding: 10px 4px; }
+
+  .hrow { border-bottom: 1px solid var(--line); }
+  .hrow:last-child { border-bottom: none; }
+  .hrow summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 4px; cursor: pointer; list-style: none; }
+  .hrow summary::-webkit-details-marker { display: none; }
+  .hdate { font-size: 15px; flex: 1; }
+  .hdate small { display: block; color: var(--muted); }
+  .hscore { font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 14px; color: var(--muted); }
+  .hpct { font-family: "IBM Plex Mono", monospace; font-weight: 600; border-radius: 999px; padding: 4px 11px; font-size: 14px; }
+  .pct-good { color: var(--good); background: var(--good-soft); }
+  .pct-mid  { color: var(--blue); background: var(--blue-soft); }
+  .pct-low  { color: var(--bad); background: var(--bad-soft); }
+  .hdetail { padding: 0 4px 12px; }
+
+  .trouble .tlabel { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+  .trouble .tlabel .mono { color: var(--muted); font-weight: 600; font-size: 13px; }
+  .tbar { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; margin-bottom: 9px; }
+  .tbar > div { height: 100%; border-radius: 999px; background: var(--bad); }
+
+  .study h3 { font-size: 15px; margin: 18px 0 8px; color: var(--accent); }
+  .study h3:first-of-type { margin-top: 0; }
+  .study dl { margin: 0; }
+  .study dt { font-weight: 700; margin-top: 8px; }
+  .study dd { margin: 0 0 2px; color: var(--muted); font-size: 15px; }
+  .study b { color: var(--accent); }
+  .phasegrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 6px; text-align: center; margin-top: 10px; }
+  .phasegrid .pname { font-size: 12.5px; font-weight: 700; margin-top: 4px; }
+  .phasegrid .pnum { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--muted); }
+
+  .empty { color: var(--muted); text-align: center; padding: 26px 10px; }
+  .footnote { color: var(--muted); font-size: 13px; text-align: center; margin-top: 18px; }
+  #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">🌙 Orbit <span>Lab</span></div>
+    <button class="navlink" id="navBtn"></button>
+  </div>
+  <div id="app"></div>
+</div>
+<canvas id="confetti" hidden></canvas>
+
+<script>
+"use strict";
+
+/* ================= moon phase drawings (Northern Hemisphere view) ================= */
+const PHASE_ORDER = ["New moon", "Waxing crescent", "First quarter", "Waxing gibbous",
+                     "Full moon", "Waning gibbous", "Third quarter", "Waning crescent"];
+function moonSVG(name, size) {
+  size = size || 92;
+  const lit = "var(--moonlit)", dark = "var(--moondark)";
+  const rightHalf = `<path d="M32 3 A29 29 0 0 1 32 61 Z" fill="${lit}"/>`;
+  const leftHalf  = `<path d="M32 3 A29 29 0 0 0 32 61 Z" fill="${lit}"/>`;
+  const ell = f => `<ellipse cx="32" cy="32" rx="13" ry="29" fill="${f}"/>`;
+  let inner = "";
+  if (name === "New moon") inner = "";
+  else if (name === "Waxing crescent") inner = rightHalf + ell(dark);
+  else if (name === "First quarter") inner = rightHalf;
+  else if (name === "Waxing gibbous") inner = rightHalf + ell(lit);
+  else if (name === "Full moon") inner = `<circle cx="32" cy="32" r="29" fill="${lit}"/>`;
+  else if (name === "Waning gibbous") inner = leftHalf + ell(lit);
+  else if (name === "Third quarter") inner = leftHalf;
+  else if (name === "Waning crescent") inner = leftHalf + ell(dark);
+  return `<svg viewBox="0 0 64 64" width="${size}" height="${size}" role="img" aria-label="moon phase">
+    <circle cx="32" cy="32" r="29" fill="${dark}"/>${inner}
+    <circle cx="32" cy="32" r="29" fill="none" stroke="#8891B8" stroke-width="1.5"/>
+  </svg>`;
+}
+
+/* ================= question bank (from VJ's Chapter 9 study sheet, corrected) =================
+   mc: o[0] is correct (shuffled at display). type: typed with forgiving spelling. */
+const BANK = [
+  // ----- Vocabulary -----
+  { t: "Vocabulary", type: "mc", q: "A body that orbits a planet is called a…", o: ["Satellite", "Star", "Comet", "Meteor"], why: "A satellite orbits a planet — the Moon is Earth's natural satellite." },
+  { t: "Vocabulary", type: "mc", q: "A giant ball of superheated gas (plasma), made mostly of hydrogen and helium:", o: ["Star", "Planet", "Comet", "Satellite"], why: "That's a star — like our sun." },
+  { t: "Vocabulary", type: "mc", q: "An object that orbits a star, is massive enough to be rounded by its own gravity, and has cleared its orbit of debris:", o: ["Planet", "Satellite", "Constellation", "Meteor"], why: "The three-part definition of a planet." },
+  { t: "Vocabulary", type: "mc", q: "A streak of light produced when a small piece of rock or ice (a meteoroid) burns up entering Earth's atmosphere:", o: ["Meteor", "Comet", "Star", "Eclipse"], why: "A meteor is the streak of light; the rock itself is a meteoroid." },
+  { t: "Vocabulary", type: "mc", q: "A cold mixture of dust and ice that develops a long glowing tail as it approaches the sun:", o: ["Comet", "Meteor", "Satellite", "Constellation"], why: "Comets grow tails near the sun as their ice turns to gas." },
+  { t: "Vocabulary", type: "mc", q: "A pattern or group of stars that people imagine represents a figure, animal, or object:", o: ["Constellation", "Phase", "Ellipse", "Galaxy cluster"], why: "A constellation — like the Big Dipper or Orion." },
+  { t: "Vocabulary", type: "mc", q: "The EARTH-centered model of the solar system is called…", o: ["Geocentric", "Heliocentric", "Elliptical", "Universal"], why: "Geo = Earth. The old model with Earth at the center." },
+  { t: "Vocabulary", type: "mc", q: "The SUN-centered model — Earth and the other planets revolve around the sun — is called…", o: ["Heliocentric", "Geocentric", "Lunar", "Axial"], why: "Helio = sun. The model we use today." },
+  { t: "Vocabulary", type: "type", q: "An oval shape, rather than a perfect circle, is called an ____.", a: "ellipse", accept: ["elipse", "ellipce"], why: "Earth's orbit around the sun is an ellipse." },
+  { t: "Vocabulary", type: "type", q: "The imaginary line that passes from the North Pole, through Earth's center, to the South Pole is the ____.", a: "axis", accept: ["axes"], why: "Earth spins on its axis, which is tilted 23.5°." },
+  { t: "Vocabulary", type: "mc", q: "The spinning of Earth on its axis:", o: ["Rotation", "Revolution", "Orbit", "Inertia"], why: "Rotation = spinning in place. One rotation takes about a day." },
+  { t: "Vocabulary", type: "mc", q: "The movement of one object around another object:", o: ["Revolution", "Rotation", "Phase", "Tide"], why: "Revolution = traveling around. Earth's revolution around the sun takes a year." },
+  { t: "Vocabulary", type: "type", q: "One rotation of Earth takes about one ____.", a: "day", accept: ["24 hours"], why: "Earth spins once a day — that's why we have day and night." },
+  { t: "Vocabulary", type: "type", q: "One revolution of Earth around the sun takes about one ____.", a: "year", accept: ["365 days"], why: "One trip around the sun = one year." },
+  { t: "Vocabulary", type: "mc", q: "The PATH an object follows as it moves around another object:", o: ["Orbit", "Axis", "Ellipse", "Rotation"], why: "An orbit is the path. Earth's orbit is shaped like an ellipse." },
+  { t: "Vocabulary", type: "mc", q: "The day(s) of the year when one hemisphere is tilted MOST toward or away from the sun — the sun appears highest or lowest in the sky:", o: ["Solstice", "Equinox", "Eclipse", "Full moon"], why: "Solstices happen twice a year — around June 21 and December 21." },
+  { t: "Vocabulary", type: "mc", q: "Halfway between the solstices, when NEITHER hemisphere is tilted toward the sun and day and night are nearly equal:", o: ["Equinox", "Solstice", "Spring tide", "New moon"], why: "Equinoxes happen twice a year — around March 21 and September 22." },
+  { t: "Vocabulary", type: "mc", q: "The force that attracts all objects toward each other:", o: ["Gravity", "Inertia", "Friction", "Magnetism"], why: "Gravity pulls everything toward everything else." },
+  { t: "Vocabulary", type: "mc", q: "“Every object in the universe attracts every other object” is the law of…", o: ["Universal gravitation", "Inertia", "Conservation of energy", "Planetary motion"], why: "Newton's law of universal gravitation." },
+  { t: "Vocabulary", type: "mc", q: "The tendency of an object to resist a change in its motion:", o: ["Inertia", "Gravity", "Momentum", "Friction"], why: "Inertia keeps moving things moving and still things still. Gravity + inertia keep Earth in orbit." },
+  { t: "Vocabulary", type: "mc", q: "The different shapes of the moon as seen from Earth are called…", o: ["Phases", "Eclipses", "Tides", "Orbits"], why: "The moon's phases repeat in a cycle of about a month." },
+  { t: "Vocabulary", type: "mc", q: "When one object in space comes between the sun and a third object, it causes…", o: ["An eclipse", "A phase", "A solstice", "A tide"], why: "An eclipse — the middle object casts a shadow on the third one." },
+  { t: "Vocabulary", type: "mc", q: "The VERY DARKEST part of a shadow, where light from the sun is completely blocked:", o: ["Umbra", "Penumbra", "Corona", "Crater"], why: "Umbra = total shadow. (Think “umbrella” — full shade.)" },
+  { t: "Vocabulary", type: "mc", q: "The lighter area of a shadow where the sun is only PARTIALLY blocked:", o: ["Penumbra", "Umbra", "Ellipse", "Equinox"], why: "Pen-umbra = “almost shadow” — partial shadow around the umbra." },
+  { t: "Vocabulary", type: "mc", q: "The rise and fall of ocean water that occurs about every 12.5 hours:", o: ["Tides", "Waves", "Currents", "Phases"], why: "Tides — caused mostly by the moon's gravity pulling on the ocean." },
+  { t: "Vocabulary", type: "mc", q: "The tide with the MOST significant (greatest) difference between consecutive low and high tides:", o: ["Spring tide", "Neap tide", "High tide", "Ebb tide"], why: "Spring tides — when the sun, moon, and Earth line up at new and full moon. (Nothing to do with the season!)" },
+  { t: "Vocabulary", type: "mc", q: "The tide with the LEAST difference between consecutive low and high tides:", o: ["Neap tide", "Spring tide", "Low tide", "Flood tide"], why: "Neap tides — when the sun and moon pull at right angles, during the quarter moons." },
+  { t: "Vocabulary", type: "type", q: "Spring tides happen when the moon is new or ____.", a: "full", why: "At new and full moon the sun, Earth, and moon line up — biggest tides." },
+  { t: "Vocabulary", type: "mc", q: "Neap tides happen during which moon phases?", o: ["First and third quarter", "New and full moon", "Only full moon", "The crescent phases"], why: "At the quarter moons, the sun and moon pull at right angles — smallest tide range." },
+
+  // ----- Earth facts -----
+  { t: "Earth facts", type: "type", q: "Earth's axis is tilted ____ degrees.", a: "23.5", accept: ["23.5 degrees"], why: "23.5° — the tilt (plus revolution) is what gives us seasons." },
+  { t: "Earth facts", type: "mc", q: "Earth's axis always points toward which star?", o: ["Polaris (the North Star)", "Sirius", "The sun", "Venus"], why: "Our axis aims at Polaris, which is why it seems to stay still in the night sky." },
+  { t: "Earth facts", type: "mc", q: "What causes the seasons?", o: ["Earth's tilted axis as it revolves around the sun", "Earth getting closer to and farther from the sun", "The moon's phases", "Earth spinning faster in summer"], why: "The 23.5° tilt means each hemisphere gets more direct sunlight for part of the year. Distance is NOT the reason." },
+  { t: "Earth facts", type: "mc", q: "How many solstices and equinoxes are there each year?", o: ["2 solstices and 2 equinoxes", "1 solstice and 1 equinox", "4 solstices and no equinoxes", "12 of each"], why: "Two of each: summer/winter solstice, spring/fall equinox." },
+  { t: "Earth facts", type: "mc", q: "In a SOLAR eclipse, what comes between the sun and Earth?", o: ["The moon", "Earth's shadow", "Mars", "A comet"], why: "Solar eclipse: the moon blocks the sun. Lunar eclipse: Earth is in the middle." },
+  { t: "Earth facts", type: "mc", q: "In a LUNAR eclipse, which object is in the middle?", o: ["Earth — between the sun and the moon", "The moon — between the sun and Earth", "The sun", "Venus"], why: "Lunar eclipse: Earth's shadow falls on the moon." },
+  { t: "Earth facts", type: "mc", q: "Earth's orbit around the sun is shaped like…", o: ["An ellipse (an oval)", "A perfect circle", "A square", "A spiral"], why: "Orbits are ellipses — ovals, not perfect circles." },
+  { t: "Earth facts", type: "mc", q: "What two things work together to keep Earth orbiting the sun?", o: ["Gravity and inertia", "Magnetism and friction", "Tides and phases", "Heat and light"], why: "Gravity pulls Earth toward the sun; inertia keeps it moving forward — together they bend its path into an orbit." },
+
+  // ----- Moon phases (the sequence questions) -----
+  { t: "Moon phases", type: "mc", q: "Which phase comes right AFTER the new moon?", o: ["Waxing crescent", "Waning crescent", "Full moon", "First quarter"], why: "New moon → waxing crescent — the lit sliver starts growing on the right." },
+  { t: "Moon phases", type: "mc", q: "Which phase comes right AFTER the first quarter?", o: ["Waxing gibbous", "Waning gibbous", "Full moon", "New moon"], why: "First quarter → waxing gibbous → full moon." },
+  { t: "Moon phases", type: "mc", q: "Which phase comes right AFTER the full moon?", o: ["Waning gibbous", "Waxing gibbous", "Third quarter", "New moon"], why: "After full, the light starts shrinking: waning gibbous." },
+  { t: "Moon phases", type: "mc", q: "Which phase comes right AFTER the third quarter?", o: ["Waning crescent", "Waxing crescent", "Full moon", "Waning gibbous"], why: "Third quarter → waning crescent → back to new moon. (The LAST phase in the cycle is waning CRESCENT, not a gibbous!)" },
+  { t: "Moon phases", type: "mc", q: "WAXING means the lit part of the moon is…", o: ["Growing", "Shrinking", "Gone", "Always full"], why: "Waxing = growing (new → full). Waning = shrinking (full → new)." },
+  { t: "Moon phases", type: "mc", q: "WANING means the lit part of the moon is…", o: ["Shrinking", "Growing", "Brightest", "Invisible"], why: "Waning = shrinking, on the way from full back to new." },
+  { t: "Moon phases", type: "mc", q: "About how long does the full cycle of moon phases take?", o: ["About 29.5 days — about a month", "24 hours", "One year", "12.5 hours"], why: "About 29.5 days from one new moon to the next — that's where “month” comes from." },
+  { t: "Moon phases", type: "type", q: "When the moon is completely dark, it is a ____ moon.", a: "new", why: "New moon — the sunlit side faces away from Earth." },
+  { t: "Moon phases", type: "type", q: "When the moon's whole face is lit up, it is a ____ moon.", a: "full", why: "Full moon — Earth is between the sun and moon, so we see the whole lit side." },
+  { t: "Moon phases", type: "mc", q: "A GIBBOUS moon is…", o: ["More than half lit, but not full", "Less than half lit", "Completely dark", "Exactly half lit"], why: "Gibbous = bulging — more than half but not all. Crescent = less than half." },
+];
+
+/* visual phase-identification questions, generated with drawings */
+const PHASE_DISTRACTORS = {
+  "New moon": ["Full moon", "Waning crescent", "Third quarter"],
+  "Waxing crescent": ["Waning crescent", "Waxing gibbous", "New moon"],
+  "First quarter": ["Third quarter", "Waxing crescent", "Full moon"],
+  "Waxing gibbous": ["Waning gibbous", "First quarter", "Full moon"],
+  "Full moon": ["New moon", "Waxing gibbous", "Waning gibbous"],
+  "Waning gibbous": ["Waxing gibbous", "Third quarter", "Full moon"],
+  "Third quarter": ["First quarter", "Waning crescent", "New moon"],
+  "Waning crescent": ["Waxing crescent", "Third quarter", "New moon"],
+};
+for (const name of PHASE_ORDER) {
+  BANK.push({
+    t: "Moon phases", type: "mc",
+    q: "Name this phase. (Remember: the lit side GROWS on the right while waxing.)",
+    fig: name,
+    o: [name, ...PHASE_DISTRACTORS[name]],
+    why: name === "New moon" ? "All dark = new moon."
+      : name === "Full moon" ? "Fully lit = full moon."
+      : (name.startsWith("Waxing") ? "The RIGHT side is lit, so it's waxing (growing). " : "The LEFT side is lit, so it's waning (shrinking). ")
+        + (name.includes("crescent") ? "Less than half lit = crescent." : name.includes("gibbous") ? "More than half lit = gibbous." : "Exactly half lit = a quarter phase."),
+  });
+}
+const QUIZ_LEN = 15;
+
+/* ================= typed-answer matching ================= */
+const norm = s => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "");
+function lev(a, b) {
+  if (Math.abs(a.length - b.length) > 2) return 99;
+  const dp = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1])
+        dp[i][j] = Math.min(dp[i][j], dp[i - 2][j - 2] + 1);
+    }
+  return dp[a.length][b.length];
+}
+function matches(guess, q) {
+  const g = norm(guess);
+  if (!g) return false;
+  return [q.a, ...(q.accept || [])].map(norm).some(c => {
+    if (c === g) return true;
+    if (c.length >= 8 && lev(c, g) <= 2) return true;
+    if (c.length >= 4 && lev(c, g) <= 1) return true;
+    return false;
+  });
+}
+
+/* ================= helpers ================= */
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* ================= storage (same pattern as the other apps) ================= */
+const KEY = "orbit-lab-history";
+const API = "/api/scores";
+let apiSynced = false;
+
+function loadLocal() {
+  try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; }
+}
+function saveLocal(h) {
+  try { localStorage.setItem(KEY, JSON.stringify(h)); } catch {}
+}
+function loadHistory() { return loadLocal(); }
+function postRecord(rec) {
+  return fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(rec) });
+}
+function addRecord(rec) {
+  const h = loadLocal(); h.push(rec); saveLocal(h);
+  postRecord(rec).catch(() => {});
+}
+function clearHistory() {
+  saveLocal([]);
+  if (apiSynced) fetch(API, { method: "DELETE" }).catch(() => {});
+}
+async function syncApi() {
+  try {
+    const res = await fetch(API);
+    if (!res.ok) throw new Error();
+    const server = await res.json();
+    if (!Array.isArray(server)) throw new Error();
+    const seen = new Set(server.map(r => r.id || r.date));
+    const missing = loadLocal().filter(r => !seen.has(r.id || r.date));
+    for (const r of missing) { try { await postRecord(r); } catch {} }
+    const merged = server.concat(missing).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    saveLocal(merged);
+    apiSynced = true;
+    if (state.screen === "home" || state.screen === "history") render();
+  } catch { apiSynced = false; }
+}
+
+/* ================= state ================= */
+const app = document.getElementById("app");
+const navBtn = document.getElementById("navBtn");
+let state = { screen: "home", quiz: [], idx: 0, right: 0, misses: [], locked: false };
+let timers = [];
+function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+
+function go(screen) {
+  clearTimers();
+  state.screen = screen;
+  if (screen === "home" || screen === "history") syncApi();
+  render();
+  window.scrollTo(0, 0);
+}
+
+navBtn.addEventListener("click", () => {
+  if (state.screen === "quiz") {
+    if (confirm("Quit this quiz? It won't be scored.")) go("home");
+  } else if (state.screen === "home") {
+    go("history");
+  } else {
+    go("home");
+  }
+});
+
+function pctClass(p) { return p >= 90 ? "pct-good" : p >= 70 ? "pct-mid" : "pct-low"; }
+
+function startQuiz() {
+  const phases = shuffle(BANK.filter(q => q.fig)).slice(0, 3);   // always include some moon drawings
+  const rest = shuffle(BANK.filter(q => !q.fig)).slice(0, QUIZ_LEN - phases.length);
+  state.quiz = shuffle(phases.concat(rest));
+  state.idx = 0;
+  state.right = 0;
+  state.misses = [];
+  go("quiz");
+}
+
+function render() {
+  navBtn.textContent = state.screen === "quiz" ? "Quit" : state.screen === "home" ? "History" : "Home";
+  if (state.screen === "home") renderHome();
+  else if (state.screen === "quiz") renderQuiz();
+  else if (state.screen === "results") renderResults();
+  else if (state.screen === "study") renderStudy();
+  else renderHistory();
+}
+
+function renderHome() {
+  const h = loadHistory();
+  const best = h.length ? Math.max(...h.map(r => r.percent)) : null;
+  const avg = h.length ? Math.round(h.reduce((a, r) => a + r.percent, 0) / h.length) : null;
+  app.innerHTML = `
+    <div class="card hero">
+      <h1>To the moon, VJ. 🚀</h1>
+      <p>${QUIZ_LEN} random questions each round from ${BANK.length} covering your whole Chapter 9 Earth–Sun–Moon sheet — all 25 vocab terms, the facts, and real moon drawings to identify. Instant grading with the why.</p>
+      <ul class="topic-list">
+        <li>25 vocab terms</li><li>Moon phases</li><li>Earth facts</li><li>Picture questions</li>
+      </ul>
+      <div class="btn-row"><button class="btn btn-primary btn-wide" id="startBtn">Start a practice quiz</button></div>
+      <div class="btn-row"><button class="btn btn-wide" id="studyBtn">Read the study sheet</button></div>
+    </div>
+    <div class="stat-row">
+      <div class="stat"><div class="num mono">${h.length}</div><div class="lbl">Quizzes</div></div>
+      <div class="stat"><div class="num mono">${best === null ? "–" : best + "%"}</div><div class="lbl">Best</div></div>
+      <div class="stat"><div class="num mono">${avg === null ? "–" : avg + "%"}</div><div class="lbl">Average</div></div>
+    </div>`;
+  document.getElementById("startBtn").addEventListener("click", startQuiz);
+  document.getElementById("studyBtn").addEventListener("click", () => go("study"));
+}
+
+function advance() {
+  clearTimers();
+  state.idx++;
+  if (state.idx >= state.quiz.length) finishQuiz();
+  else render();
+}
+
+function renderQuiz() {
+  const q = state.quiz[state.idx];
+  const n = state.quiz.length;
+  const isMC = q.type === "mc";
+
+  let answerHTML;
+  let opts = [];
+  if (isMC) {
+    opts = shuffle(q.o.map((text, i) => ({ text, correct: i === 0 })));
+    answerHTML = `<div class="opts">${opts.map((o, i) =>
+      `<button class="opt" data-i="${i}">${esc(o.text)}</button>`).join("")}</div>`;
+  } else {
+    answerHTML = `<div class="answer-line">
+        <input class="answer" id="ansInput" type="text" autocomplete="off" autocapitalize="off" placeholder="Type your answer" aria-label="Your answer">
+        <button class="btn btn-primary" id="checkBtn">Check</button>
+      </div>`;
+  }
+
+  app.innerHTML = `
+    <div class="progress">
+      <div class="label"><span>Question ${state.idx + 1} of ${n}</span><span>${esc(q.t)}</span></div>
+      <div class="bar"><div style="width:${((state.idx + 1) / n) * 100}%"></div></div>
+    </div>
+    <div class="card">
+      <div class="qtopic">${esc(q.t)}</div>
+      <p class="qtext">${esc(q.q)}</p>
+      ${q.fig ? `<div class="moonfig">${moonSVG(q.fig)}</div>` : ""}
+      ${answerHTML}
+      <div class="feedback neutral" id="feedback">${isMC ? "Tap the best answer." : "Little typos are forgiven — spelling doesn't have to be perfect."}</div>
+    </div>`;
+
+  const feedback = document.getElementById("feedback");
+  const showWhy = ok => {
+    feedback.className = "feedback " + (ok ? "right" : "wrong");
+    feedback.innerHTML = (ok ? "Correct! ✓" : `Not quite — the answer is <b>${esc(isMC ? q.o[0] : q.a)}</b>.`) +
+      `<span class="why">${esc(q.why)}</span>` +
+      (ok ? "" : ` <button class="navlink" id="nextBtn">Next →</button>`);
+    if (!ok) document.getElementById("nextBtn").addEventListener("click", advance);
+  };
+
+  if (isMC) {
+    app.querySelectorAll(".opt").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (state.locked) return;
+        state.locked = true;
+        const chosen = opts[Number(btn.dataset.i)];
+        app.querySelectorAll(".opt").forEach((b, i) => {
+          b.disabled = true;
+          if (opts[i].correct) b.classList.add("right");
+          else if (b === btn) b.classList.add("wrong");
+          else b.classList.add("dim");
+        });
+        if (chosen.correct) {
+          state.right++;
+          showWhy(true);
+          later(() => { state.locked = false; advance(); }, 1400);
+        } else {
+          state.misses.push({ q: q.fig ? "Picture: identify the " + q.fig.toLowerCase() : q.q, a: chosen.text, c: q.o[0] });
+          showWhy(false);
+          state.locked = false;
+        }
+      });
+    });
+  } else {
+    const input = document.getElementById("ansInput");
+    const checkBtn = document.getElementById("checkBtn");
+    const submit = () => {
+      if (state.locked) return;
+      const guess = input.value.trim();
+      if (!guess) { input.focus(); return; }
+      state.locked = true;
+      input.disabled = true; checkBtn.disabled = true;
+      if (matches(guess, q)) {
+        state.right++;
+        showWhy(true);
+        later(() => { state.locked = false; advance(); }, 1400);
+      } else {
+        state.misses.push({ q: q.q, a: guess.slice(0, 60), c: q.a });
+        showWhy(false);
+        state.locked = false;
+      }
+    };
+    checkBtn.addEventListener("click", submit);
+    input.addEventListener("keydown", e => { if (e.key === "Enter") submit(); });
+  }
+  state.locked = false;
+}
+
+function finishQuiz() {
+  clearTimers();
+  const total = state.quiz.length;
+  const percent = Math.round((state.right / total) * 100);
+  const rec = {
+    id: Date.now() + "-" + Math.random().toString(36).slice(2, 8),
+    date: new Date().toISOString(),
+    right: state.right, total, percent,
+    misses: state.misses.map(m => ({ q: m.q, a: m.a, c: m.c })),
+  };
+  addRecord(rec);
+  state.lastResult = rec;
+  go("results");
+}
+
+function missListHTML(misses) {
+  return misses.length
+    ? `<ul class="misslist">${misses.map(m =>
+        `<li><span class="q">${esc(m.q)}</span>
+         <span class="a">${esc(m.a)}</span> → <span class="cor">${esc(m.c)}</span></li>`).join("")}</ul>`
+    : `<div class="allgood">Nothing missed — perfect orbit!</div>`;
+}
+
+function renderResults() {
+  const r = state.lastResult;
+  const msg = r.percent === 100 ? "Perfect — over the moon! \u{1F3C6}"
+    : r.percent >= 90 ? "Stellar — you're ready!"
+    : r.percent >= 70 ? "Good — review the misses below."
+    : "Keep orbiting — read the study sheet, then go again.";
+  app.innerHTML = `
+    <div class="card score-hero">
+      <div class="score-big mono" style="color:${r.percent >= 90 ? "var(--good)" : r.percent >= 70 ? "var(--blue)" : "var(--bad)"}">${r.right}/${r.total}</div>
+      <div class="score-msg">${msg}</div>
+      <div class="score-sub">${r.percent}% · saved to history</div>
+      <div class="btn-row">
+        <button class="btn" id="studyBtn">Study sheet</button>
+        <button class="btn btn-primary" id="againBtn">New quiz</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2 style="font-size:16px">${r.misses.length ? "What you missed" : "Clean sheet"}</h2>
+      ${missListHTML(r.misses)}
+    </div>`;
+  document.getElementById("againBtn").addEventListener("click", startQuiz);
+  document.getElementById("studyBtn").addEventListener("click", () => go("study"));
+  if (r.percent >= 90) confetti();
+}
+
+function renderHistory() {
+  const h = loadHistory().slice().reverse();
+  const missCount = {};
+  h.forEach(r => (r.misses || []).forEach(m => { missCount[m.q] = (missCount[m.q] || 0) + 1; }));
+  const worst = Object.entries(missCount).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const maxMiss = worst.length ? worst[0][1] : 1;
+
+  const rows = h.map(r => {
+    const d = new Date(r.date);
+    const date = d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+    const time = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+    return `<details class="hrow">
+        <summary>
+          <div class="hdate">${date}<small>${time}</small></div>
+          <span class="hscore">${r.right}/${r.total}</span>
+          <span class="hpct ${pctClass(r.percent)}">${r.percent}%</span>
+        </summary>
+        <div class="hdetail">${missListHTML(r.misses || [])}</div>
+      </details>`;
+  }).join("");
+
+  app.innerHTML = `
+    <div class="card">
+      <h2 style="font-size:17px">Quiz history</h2>
+      <p style="color:var(--muted);font-size:14px;margin:6px 0 4px">Tap a quiz to see exactly what was missed.</p>
+      ${h.length ? rows : `<div class="empty">No quizzes yet — take your first one!</div>`}
+    </div>
+    ${worst.length ? `<div class="card trouble"><h2 style="font-size:17px">Trouble questions</h2>
+      <p style="color:var(--muted);font-size:14px;margin:6px 0 10px">Missed most often — drill these before the test.</p>
+      ${worst.map(([qq, n]) =>
+        `<div class="tlabel"><span style="max-width:75%">${esc(qq)}</span><span class="mono">${n}×</span></div>
+         <div class="tbar"><div style="width:${(n / maxMiss) * 100}%"></div></div>`).join("")}</div>` : ""}
+    <div class="btn-row"><button class="btn btn-primary btn-wide" id="startBtn">Start a practice quiz</button></div>
+    ${h.length ? `<div class="btn-row"><button class="btn btn-danger btn-wide" id="clearBtn">Clear history</button></div>` : ""}
+    <p class="footnote">${apiSynced
+      ? "Scores sync — open this same link on any phone or computer to see them."
+      : "History is saved on this device."}</p>`;
+
+  document.getElementById("startBtn").addEventListener("click", startQuiz);
+  const clearBtn = document.getElementById("clearBtn");
+  if (clearBtn) clearBtn.addEventListener("click", () => {
+    if (confirm("Delete all saved scores? This can't be undone.")) { clearHistory(); render(); }
+  });
+}
+
+function renderStudy() {
+  const phaseCells = PHASE_ORDER.map((p, i) =>
+    `<div><div>${moonSVG(p, 56)}</div><div class="pname">${esc(p)}</div><div class="pnum">${i + 1} of 8</div></div>`).join("");
+  app.innerHTML = `
+    <div class="card study">
+      <h2 style="font-size:17px;margin-bottom:4px">Chapter 9, small enough for a phone</h2>
+      <h3>The moon's 8 phases, in order</h3>
+      <div class="phasegrid">${phaseCells}</div>
+      <p style="color:var(--muted);font-size:14px;margin-top:10px"><b>Waxing</b> = growing, lit on the RIGHT. <b>Gibbous</b> = more than half. <b>Crescent</b> = less than half. After third quarter comes waning <b>crescent</b> — then back to new. Full cycle ≈ 29.5 days.</p>
+      <h3>Space objects</h3>
+      <dl>
+        <dt>Satellite</dt><dd>A body that orbits a planet (the Moon is ours).</dd>
+        <dt>Star</dt><dd>Giant ball of superheated gas (plasma) — hydrogen and helium.</dd>
+        <dt>Planet</dt><dd>Orbits a star, rounded by its own gravity, has cleared its orbit of debris.</dd>
+        <dt>Meteor</dt><dd>Streak of light when a meteoroid burns up in Earth's atmosphere.</dd>
+        <dt>Comet</dt><dd>Cold dust + ice; grows a long glowing tail near the sun.</dd>
+        <dt>Constellation</dt><dd>Star pattern people imagine as a figure, animal, or object.</dd>
+      </dl>
+      <h3>Models &amp; motion</h3>
+      <dl>
+        <dt>Geocentric vs. heliocentric</dt><dd><b>Geo</b> = Earth-centered (old model). <b>Helio</b> = sun-centered (correct model).</dd>
+        <dt>Rotation</dt><dd>Earth spinning on its axis — about 1 day.</dd>
+        <dt>Revolution</dt><dd>One object moving around another — Earth around the sun ≈ 1 year.</dd>
+        <dt>Orbit</dt><dd>The PATH around another object — shaped like an <b>ellipse</b> (oval).</dd>
+        <dt>Axis</dt><dd>Imaginary North-Pole-to-South-Pole line through Earth's center — tilted <b>23.5°</b>, aimed at <b>Polaris</b>.</dd>
+        <dt>Gravity + inertia</dt><dd>Gravity pulls objects together; inertia resists changes in motion. Together they keep Earth in orbit.</dd>
+      </dl>
+      <h3>Seasons</h3>
+      <dl>
+        <dt>Why seasons happen</dt><dd>Earth's <b>tilt</b> + its revolution — NOT distance from the sun.</dd>
+        <dt>Solstice (×2 a year)</dt><dd>Hemisphere tilted MOST toward or away; sun highest or lowest in the sky.</dd>
+        <dt>Equinox (×2 a year)</dt><dd>Halfway between solstices; neither hemisphere tilted toward the sun; day ≈ night.</dd>
+      </dl>
+      <h3>Shadows, eclipses &amp; tides</h3>
+      <dl>
+        <dt>Eclipse</dt><dd>One object comes between the sun and a third object. <b>Solar</b>: moon in the middle. <b>Lunar</b>: Earth in the middle.</dd>
+        <dt>Umbra / penumbra</dt><dd><b>Umbra</b> = darkest shadow, sun fully blocked. <b>Penumbra</b> = partial shadow.</dd>
+        <dt>Tides</dt><dd>Ocean rises and falls about every <b>12.5 hours</b> (mostly the moon's gravity).</dd>
+        <dt>Spring tide</dt><dd>GREATEST difference — sun+Earth+moon lined up at <b>new and full</b> moon.</dd>
+        <dt>Neap tide</dt><dd>LEAST difference — sun and moon at right angles, at the <b>quarter</b> moons.</dd>
+      </dl>
+      <div class="btn-row"><button class="btn btn-primary btn-wide" id="startBtn">I'm ready — quiz me</button></div>
+    </div>`;
+  document.getElementById("startBtn").addEventListener("click", startQuiz);
+}
+
+/* ================= confetti ================= */
+function confetti() {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cv = document.getElementById("confetti");
+  cv.hidden = false;
+  cv.width = innerWidth; cv.height = innerHeight;
+  const ctx = cv.getContext("2d");
+  const colors = ["#F2C66B", "#7FA8F0", "#F2E9C9", "#5CC98A", "#FFFFFF"];
+  const bits = Array.from({ length: 120 }, () => ({
+    x: Math.random() * cv.width, y: -20 - Math.random() * cv.height * 0.5,
+    vy: 2 + Math.random() * 3, vx: -1 + Math.random() * 2,
+    s: 5 + Math.random() * 6, r: Math.random() * Math.PI, vr: -0.1 + Math.random() * 0.2,
+    col: colors[Math.floor(Math.random() * colors.length)],
+  }));
+  let frames = 0;
+  (function loop() {
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    for (const b of bits) {
+      b.x += b.vx; b.y += b.vy; b.r += b.vr;
+      ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.r);
+      ctx.fillStyle = b.col; ctx.fillRect(-b.s / 2, -b.s / 2, b.s, b.s * 0.6);
+      ctx.restore();
+    }
+    if (++frames < 220) requestAnimationFrame(loop);
+    else { ctx.clearRect(0, 0, cv.width, cv.height); cv.hidden = true; }
+  })();
+}
+
+render();
+syncApi();
+</script>
+</body>
+</html>
